@@ -152,8 +152,10 @@ OR - Run it directly via test script
 ```typescript
 
   npx tsx run-scraper.ts --url "https://www.bbb.org/search?find_text=plumbers" --pages 3
-'''
+```
+
 ### Output Structure
+
 ```typescript
 interface BusinessInfo {
   name: string;
