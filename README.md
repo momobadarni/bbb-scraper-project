@@ -147,6 +147,12 @@ const results = await scrapeBBBPages({
 });
 ```
 
+OR - Run it directly via test script
+
+```typescript
+
+  npx tsx run-scraper.ts --url "https://www.bbb.org/search?find_text=plumbers" --pages 3
+'''
 ### Output Structure
 ```typescript
 interface BusinessInfo {
@@ -271,10 +277,6 @@ python bbb_fastapi_scraper.py
 - **Database**: Supabase (PostgreSQL)
 - **API**: Next.js API routes + FastAPI
 
-### Production Deployment
-- Deployed on Vercel
-- Requires pino-pretty as production dependency (Stagehand requirement)
-- All environment variables must be set in Vercel dashboard
 
 ### Performance Comparison
 - **Stagehand**: ~30-60s per page (browser-based)
@@ -307,20 +309,3 @@ bbb-scraper-project/
     ├── schema.sql
     └── package.json
 ```
-
-## Key Learnings
-
-1. **Multiple scraping approaches**: Different methods suit different scenarios
-2. **AI-powered extraction**: More flexible than CSS selectors but slower
-3. **Production challenges**: Logger dependencies, environment variables
-4. **Performance trade-offs**: Speed vs reliability vs complexity
-5. **Data quality**: Deduplication and validation are crucial
-
-## Future Enhancements
-
-- Add scheduling for periodic scraping
-- Implement diff tracking for changes
-- Add export functionality (CSV, Excel)
-- Expand to other BBB categories
-- Add webhook notifications
-- Implement caching layer
