@@ -200,5 +200,5 @@ def save_to_csv(businesses):
 if __name__ == '__main__':
     
     url = "https://www.bbb.org/search?filter_category=60548-100&filter_category=60142-000&filter_ratings=A&find_country=USA&find_text=Medical+Billing"
-    pages = 1
+    pages = 15
     asyncio.run(scrape_bbb_playwright(url, pages))

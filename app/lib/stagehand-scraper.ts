@@ -158,7 +158,6 @@ async function processBusinessBatch(businesses: { url: string }[]): Promise<Busi
 export async function scrapeBBBPages(config: ScraperConfig) {
   const { baseUrl, totalPages, businessesPerSession = 15 } = config;
   const allBusinesses: BusinessInfo[] = [];
-  const seenBusinessIds = new Set<string>();
   const allBusinessUrls: { url: string }[] = [];
   
   // First, collect all business URLs from search pages
@@ -215,12 +214,12 @@ export async function scrapeBBBPages(config: ScraperConfig) {
   
   // Deduplicate URLs by business ID before processing
   const uniqueBusinessUrls: { url: string }[] = [];
-  const seenBusinessIds = new Set<string>();
+  const urlBusinessIds = new Set<string>();
   
   for (const business of allBusinessUrls) {
     const businessId = extractBusinessIdFromUrl(business.url);
-    if (businessId && !seenBusinessIds.has(businessId)) {
-      seenBusinessIds.add(businessId);
+    if (businessId && !urlBusinessIds.has(businessId)) {
+      urlBusinessIds.add(businessId);
       uniqueBusinessUrls.push(business);
     } else if (!businessId) {
       // Keep URLs without business IDs (shouldn't happen, but just in case)
