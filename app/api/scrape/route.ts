@@ -1,6 +1,6 @@
 // src/app/api/scrape/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { scrapeBBBPages } from '@/app/lib/stagehand-scraper';
+import { scrapeBBBPages } from '../../lib/stagehand-scraper';
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -26,17 +26,8 @@ export async function POST(request: NextRequest) {
       totalPages: pages
     });
     
-    const seenPhones = new Set();
-    const uniqueBusinesses = scrapedBusinesses.filter(business => {
-      const phone = business.phone?.trim();
-      if (phone && phone !== '' && seenPhones.has(phone)) {
-        return false; 
-      }
-      if (phone && phone !== '') {
-        seenPhones.add(phone);
-      }
-      return true;
-    });
+    // Businesses are already deduplicated by the scraper using business IDs
+    const uniqueBusinesses = scrapedBusinesses;
     
     // Save to Supabase
     const { data, error } = await supabase

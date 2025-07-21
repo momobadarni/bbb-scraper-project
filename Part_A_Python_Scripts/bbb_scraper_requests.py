@@ -41,12 +41,12 @@ headers = {
     # 'cookie': 'iabbb_user_culture=en-us; iabbb_user_location=Ellicott_MD_USA; iabbb_user_physical_location=Ellicott%20City%2C%20MD%2C%20US; iabbb_user_bbb=0011; iabbb_find_location=Ellicott_MD_USA; iabbb_session_id=03226eee-01af-4dc8-abba-57e0da8874e7; iabbb_cookies_policy=%7B%22necessary%22%3Atrue%2C%22functional%22%3Afalse%2C%22performance%22%3Afalse%2C%22marketing%22%3Afalse%7D; iabbb_cookies_preferences_set=true; iabbb_accredited_toggle_state=seen; iabbb_user_postalcode=21043; __cf_bm=Q1QJt7U.s429_lUvLHoVXYjvoUz1wWfJfJoEB78gIkI-1752980338-1.0.1.1-ud8uWgCUOHRbFDVxIabmMFMJeLBHQO57m_enOirxdCNrHl2PrtuiWNP3VE_0YoS1FrF0VwOyIiSQEUG5t9xKgADXtmSI4kzlsDR36ewxEdI; CF_Authorization=eyJraWQiOiIxY2VlNzA1OGQ0NjE1MDBhOTE1Y2U3Yjk2MWE3ZGRhMTAzMWRiYmJhMmUxYjc1YzBkMzI4MjBiOTYwNmQxNTJiIiwiYWxnIjoiUlMyNTYiLCJ0eXAiOiJKV1QifQ.eyJ0eXBlIjoiYXBwIiwiYXVkIjoiMmNhYzEyYTJmOWY0OTI2YjdmYmY3OTJmNTA5MjA1NjA5YWMwMmIwZmQ0MWQ1ZTcyZjY0YzY5NWY3MDg2ODkzYyIsImV4cCI6MTc1MzA2NjczOCwiaXNzIjoiaHR0cHM6XC9cL2lhYmJiLmNsb3VkZmxhcmVhY2Nlc3MuY29tIiwiY29tbW9uX25hbWUiOiJhNTBlNTEzYjFjNzM0ZjFhMjJmZDJlN2ZkMjI5ZmI4NC5hY2Nlc3MiLCJpYXQiOjE3NTI5ODAzMzgsInN1YiI6IiJ9.1dvkN7SQllrXbkfT6fQvCP4wVXw6v0kOTh2RVO83-h401tokctEqWD-IALm7DMNhydLje0pkpUTvru3c83xw5MjvP9yEhW9GLdpKUrds_V3Q_NAFoaKHCFTERQjwluJES5R6NAURIULqkcqqMPJh7cyqbb4CsDaxrPSkkMX76WWOef0xD4XZUqXmRagNcf-M82-Qp5dAhVM6OrgW9if-FXfva5u9GhrL2eM2VpkMETrULYlWz16_oza50UCA2Jf_Pi3k3r2BEyZoS6DAtKfUOvq_wfBpY5RmNMbUGIUidFQiW8zJEIIw9cJX03PZZKOrD7QpDW18sEqzhVx3l0ElgQ; __gads=ID=f09ab7c25269b925:T=1752881631:RT=1752980338:S=ALNI_MafSVlTpcJSLepszPtNxBqrj74log; __eoi=ID=74c03c9a04af405d:T=1752881631:RT=1752980338:S=AA-AfjZs-NMi6Oo6MILmCP8fh4ch',
 }
 
-def scrape_bbb_results():
+def scrape_bbb_results(base_url, num_pages):
     businesses = []
     seen_businesses = set()
-    for i in range(1,16):
+    for i in range(1,num_pages+1):
         print(f"Scraping page {i}")
-        url = f"https://www.bbb.org/search?filter_category=60548-100&filter_category=60142-000&filter_ratings=A&find_country=USA&find_text=Medical+Billing&page={i}"
+        url = f"{base_url}&page={i}"
         response = requests.get(url, headers=headers,impersonate="chrome")
         print(response.status_code)
         # Extract the JSON data using regex
@@ -115,8 +115,17 @@ def scrape_bbb_results():
                 if contact['isPrincipal'] == True:
                     if contact['name'] is not None:
                         name = contact['name']
-                        contact_name = f"{name.get('prefix', '')} {name.get('first', '')} {name.get('middle', '')} {name.get('last', '')}"
-                        contact_name = contact_name.strip()
+                        # Build name with prefix (title) included
+                        name_parts = []
+                        if name.get('prefix'):
+                            name_parts.append(name['prefix'])
+                        if name.get('first'):
+                            name_parts.append(name['first'])
+                        if name.get('middle'):
+                            name_parts.append(name['middle'])
+                        if name.get('last'):
+                            name_parts.append(name['last'])
+                        contact_name = ' '.join(name_parts)
                         business['principal_contact'] = contact_name
                         break
         else:
@@ -137,7 +146,8 @@ def save_to_csv(businesses):
     
     fieldnames = ['name', 'phone', 'principal_contact', 'url', 'street_address', 'accreditation_status']
     
-    with open('Part_A_Python_Scripts/Output/medical_billing_companies_v2.csv', 'w', newline='', encoding='utf-8') as csvfile:
+
+    with open('Output/medical_billing_companies_v2.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(businesses)
@@ -146,4 +156,4 @@ def save_to_csv(businesses):
 
 
 if __name__ == '__main__':
-    scrape_bbb_results()
+    scrape_bbb_results("https://www.bbb.org/search?filter_category=60548-100&filter_category=60142-000&filter_ratings=A&find_country=USA&find_text=Medical+Billing",15)

@@ -248,7 +248,7 @@ class BBBScraper:
             if contact.get('isPrincipal'):
                 name = contact.get('name')
                 if name:
-                    # Only include name parts that are not None
+                    # Build name with prefix (title) included
                     name_parts = []
                     if name.get('prefix'):
                         name_parts.append(name['prefix'])

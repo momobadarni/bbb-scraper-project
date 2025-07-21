@@ -34,14 +34,14 @@ https://www.bbb.org/search?filter_category=60548-100&filter_category=60142-000&f
 
 #### 1. Playwright Scraper (`bbb_scraper_playwright.py`)
 - Uses headed/headless browser automation
-- Overcomes Cloudflare protection by using proper user agents
-- Extracts data from dynamically loaded content
+- Extracts data from page, depends on page layout not changing 
+- Fast enough and reliable but tough to scale
 
 #### 2. Requests/curl_cffi Scraper (`bbb_scraper_requests.py`)
 - Direct HTTP requests using curl_cffi
 - Extracts data from `window.__PRELOADED_STATE__` JSON
 - Faster than browser automation
-- Includes deduplication by phone number
+- Includes deduplication by business ID, 
 
 #### 3. FastAPI Scraper (`bbb_fastapi_scraper.py`)
 - REST API wrapper around the curl_cffi scraper
@@ -84,7 +84,6 @@ python bbb_fastapi_scraper.py
 
 ### Deliverables
 - `medical_billing_companies.csv` - Output file with scraped data
-- Multiple scraper implementations for different use cases
 
 ---
 
@@ -110,13 +109,24 @@ Wrap the scraper into a Stagehand-compatible module for programmatic invocation 
 - Automatic deduplication by phone number
 
 ### Prompt Format
+
+There are two prompts used, one to get all busiess URLs from the search page and pagination. 
+
 ```typescript
-const config = {
-  baseUrl: "https://www.bbb.org/search?...",
-  totalPages: 5,
-  businessesPerSession: 15
-};
-await scrapeBBBPages(config);
+
+const urlInstruction = "Extract the URL (href attribute) for ALL business cards on this search results page. Each business card has a link to its detail page.";
+```
+
+One to extract all the other details from the business detail page. 
+
+```typescript
+// Extract detailed information from the business page
+    const detailInstruction = `Extract the following information from this business detail page:
+    1. Business name (usually in the header)
+    2. Phone number (format as +1 followed by 10 digits)
+    3. Street address only (no city, state, or zip)
+    4. Principal contact name (look for "Principal Contacts" section - this is a person's name, not the phone)
+    5. Accreditation status (look for "BBB Accredited Business" label or seal - return "true" or "false")`;
 ```
 
 ### Invocation Steps

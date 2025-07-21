@@ -66,18 +66,8 @@ export async function POST(request: NextRequest) {
       source: 'api'
     }));
 
-    // Remove duplicates based on phone number
-    const seenPhones = new Set();
-    const uniqueBusinesses = businessesToInsert.filter(business => {
-      const phone = business.phone?.trim();
-      if (phone && phone !== '' && seenPhones.has(phone)) {
-        return false; 
-      }
-      if (phone && phone !== '') {
-        seenPhones.add(phone);
-      }
-      return true;
-    });
+    // Businesses are already deduplicated by the FastAPI scraper using business IDs
+    const uniqueBusinesses = businessesToInsert;
     
     // Save to Supabase
     const { data: savedData, error } = await supabase

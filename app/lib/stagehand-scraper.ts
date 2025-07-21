@@ -1,7 +1,19 @@
 import { Stagehand } from "@browserbasehq/stagehand";
 import { z } from "zod";
 
+function extractBusinessIdFromUrl(url: string): string | null {
+  if (!url) return null;
+  // Pattern to match business ID (series of digits after the last hyphen before optional /addressId)
+  const pattern = /-(\d+)(?:\/addressId\/\d+)?\/?$/;
+  const match = url.match(pattern);
+  if (match) {
+    return match[1];
+  }
+  return null;
+}
+
 interface BusinessInfo {
+  businessId: string | null;
   name: string;
   phone: string | null;
   address: string | null;
@@ -80,7 +92,7 @@ async function extractBusinessDetailsFromPage(stagehand: Stagehand, businessUrl:
     1. Business name (usually in the header)
     2. Phone number (format as +1 followed by 10 digits)
     3. Street address only (no city, state, or zip)
-    4. Principal contact name (look for "Principal Contacts" section - this is a person's name, not the phone)
+    4. Principal contact name (look for "Principal Contacts" section - include the person's full name with titles like Mr., Ms., Mrs., Dr., etc. but EXCLUDE any role/position that comes after a comma like Owner, President, CEO, etc.)
     5. Accreditation status (look for "BBB Accredited Business" label or seal - return "true" or "false")`;
     
     const detailResult = await page.extract({
@@ -94,7 +106,10 @@ async function extractBusinessDetailsFromPage(stagehand: Stagehand, businessUrl:
       }),
     });
     
+    const businessId = extractBusinessIdFromUrl(businessUrl);
+    
     return {
+      businessId,
       ...detailResult,
       url: businessUrl,
     };
@@ -104,7 +119,7 @@ async function extractBusinessDetailsFromPage(stagehand: Stagehand, businessUrl:
   }
 }
 
-async function processBusinessBatch(businesses: { url: string }[], seenPhones: Set<string>): Promise<BusinessInfo[]> {
+async function processBusinessBatch(businesses: { url: string }[]): Promise<BusinessInfo[]> {
   const results: BusinessInfo[] = [];
   let stagehand: Stagehand | null = null;
   
@@ -118,15 +133,8 @@ async function processBusinessBatch(businesses: { url: string }[], seenPhones: S
       const businessInfo = await extractBusinessDetailsFromPage(stagehand, business.url);
       
       if (businessInfo) {
-        // Deduplicate by phone number
-        const phone = businessInfo.phone?.trim();
-        if (!phone || !seenPhones.has(phone)) {
-          if (phone) seenPhones.add(phone);
-          results.push(businessInfo);
-          console.log(`    ✅ Added: ${businessInfo.name}`);
-        } else {
-          console.log(`    ⏭️  Skipped duplicate: ${businessInfo.name}`);
-        }
+        results.push(businessInfo);
+        console.log(`    ✅ Added: ${businessInfo.name} (ID: ${businessInfo.businessId || 'no-id'})`);
       }
       
       // Small delay between requests to avoid rate limiting
@@ -150,7 +158,7 @@ async function processBusinessBatch(businesses: { url: string }[], seenPhones: S
 export async function scrapeBBBPages(config: ScraperConfig) {
   const { baseUrl, totalPages, businessesPerSession = 15 } = config;
   const allBusinesses: BusinessInfo[] = [];
-  const seenPhones = new Set<string>();
+  const seenBusinessIds = new Set<string>();
   const allBusinessUrls: { url: string }[] = [];
   
   // First, collect all business URLs from search pages
@@ -205,14 +213,31 @@ export async function scrapeBBBPages(config: ScraperConfig) {
   
   console.log(`\n📊 Total business URLs collected: ${allBusinessUrls.length}`);
   
+  // Deduplicate URLs by business ID before processing
+  const uniqueBusinessUrls: { url: string }[] = [];
+  const seenBusinessIds = new Set<string>();
+  
+  for (const business of allBusinessUrls) {
+    const businessId = extractBusinessIdFromUrl(business.url);
+    if (businessId && !seenBusinessIds.has(businessId)) {
+      seenBusinessIds.add(businessId);
+      uniqueBusinessUrls.push(business);
+    } else if (!businessId) {
+      // Keep URLs without business IDs (shouldn't happen, but just in case)
+      uniqueBusinessUrls.push(business);
+    }
+  }
+  
+  console.log(`\n📊 Unique businesses after deduplication: ${uniqueBusinessUrls.length}`);
+  
   // Process businesses in batches with new sessions
   console.log(`\n🚀 Processing businesses in batches of ${businessesPerSession}...`);
   
-  for (let i = 0; i < allBusinessUrls.length; i += businessesPerSession) {
-    const batch = allBusinessUrls.slice(i, i + businessesPerSession);
+  for (let i = 0; i < uniqueBusinessUrls.length; i += businessesPerSession) {
+    const batch = uniqueBusinessUrls.slice(i, i + businessesPerSession);
     console.log(`\n📦 Processing batch ${Math.floor(i / businessesPerSession) + 1} (${batch.length} businesses)...`);
     
-    const batchResults = await processBusinessBatch(batch, seenPhones);
+    const batchResults = await processBusinessBatch(batch);
     allBusinesses.push(...batchResults);
     
     
