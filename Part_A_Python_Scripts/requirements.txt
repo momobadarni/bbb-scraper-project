@@ -1,0 +1,12 @@
+certifi==2025.7.14
+cffi==1.17.1
+curl_cffi==0.12.0
+greenlet==3.2.3
+playwright==1.53.0
+pycparser==2.22
+pyee==13.0.0
+typing_extensions==4.14.1
+fastapi==0.115.0
+uvicorn[standard]==0.34.0
+pydantic==2.10.1
+pydantic-core==2.27.1
